@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Método 3Ps — Plataforma de Ensino</title>
+<style>
+/* ── RESET & BASE ── */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#0f0f13;color:#e8e8f0;font-size:15px;
+}
+
+/* ── VARIÁVEIS ── */
+:root{
+  --bg:#0f0f13;
+  --bg2:#18181f;
+  --bg3:#222230;
+  --gold:#f0b429;
+  --gold2:#e09b10;
+  --text:#e8e8f0;
+  --text2:#9999b0;
+  --border:#2a2a3a;
+  --radius:10px;
+  --nav-h:60px;
+  --bot-h:64px;
+}
+
+/* ── TELAS ── */
+.screen{display:none;position:absolute;inset:0;}
+.screen.active{display:block;}
+
+/* ── LOGIN ── */
+#screen-login{
+  background:linear-gradient(135deg,#0f0f13 60%,#1a1a2e);
+  display:flex;align-items:center;justify-content:center;
+  position:fixed;inset:0;z-index:100;
+}
+.login-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:16px;padding:40px 36px;width:100%;max-width:400px;
+  margin:16px;
+}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-logo-text{
+  font-size:2rem;font-weight:800;letter-spacing:-1px;
+  color:var(--text);
+}
+.login-logo-text .gold{color:var(--gold);}
+.login-tagline{color:var(--text2);font-size:.85rem;margin-top:6px;letter-spacing:.5px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+.field input{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px 14px;color:var(--text);
+  font-size:.95rem;outline:none;transition:border-color .2s;
+}
+.field input:focus{border-color:var(--gold);}
+.login-error{color:#ff6b6b;font-size:.85rem;margin-bottom:12px;display:none;}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:none;border-radius:var(--radius);cursor:pointer;
+  font-size:.9rem;font-weight:600;padding:11px 20px;transition:.2s;
+  text-decoration:none;
+}
+.btn-primary{background:var(--gold);color:#0f0f13;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.btn-full{width:100%;margin-top:4px;}
+.btn-sm{padding:7px 14px;font-size:.82rem;}
+.login-hint{text-align:center;color:var(--text2);font-size:.8rem;margin-top:20px;}
+
+/* toggle login/signup */
+.auth-toggle{text-align:center;margin-top:16px;font-size:.85rem;color:var(--text2);}
+.auth-toggle a{color:var(--gold);cursor:pointer;text-decoration:none;}
+
+/* ── APP SHELL ── */
+#app-shell{
+  position:fixed;inset:0;display:none;flex-direction:column;
+}
+#app-shell.visible{display:flex;}
+
+/* NAVBAR */
+.navbar{
+  height:var(--nav-h);background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;flex-shrink:0;z-index:10;
+}
+.navbar-brand{font-size:1.1rem;font-weight:800;letter-spacing:-.5px;}
+.navbar-brand .gold{color:var(--gold);}
+.nav-links{display:flex;gap:4px;list-style:none;}
+.nav-link{
+  padding:7px 14px;border-radius:8px;color:var(--text2);
+  font-size:.85rem;font-weight:500;cursor:pointer;
+  text-decoration:none;transition:.15s;
+}
+.nav-link:hover,.nav-link.active{background:var(--bg3);color:var(--text);}
+.nav-link.active{color:var(--gold);}
+.navbar-right{display:flex;align-items:center;gap:12px;}
+.user-name{font-size:.82rem;color:var(--text2);}
+@media(max-width:640px){.nav-links,.user-name{display:none;}}
+
+/* MAIN */
+#main-content{
+  flex:1;overflow:hidden;position:relative;
+}
+
+/* PAGE SCROLL */
+.page-scroll{
+  height:100%;overflow-y:auto;
+  padding:24px 24px calc(var(--bot-h) + 24px);
+}
+@media(min-width:641px){.page-scroll{padding-bottom:24px;}}
+
+/* PAGE HEADER */
+.page-header{margin-bottom:28px;}
+.page-title{font-size:1.5rem;font-weight:700;margin-bottom:4px;}
+.page-subtitle{color:var(--text2);font-size:.9rem;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:28px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.stat-value{font-size:1.6rem;font-weight:800;color:var(--gold);}
+.stat-label{font-size:.78rem;color:var(--text2);margin-top:2px;}
+
+/* SECTION */
+.section{margin-bottom:32px;}
+.section-title{font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--text);}
+
+/* CONTINUE CARD */
+.continue-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.continue-info{flex:1;min-width:180px;}
+.continue-module{font-size:.75rem;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.continue-title{font-size:1rem;font-weight:600;margin-bottom:12px;}
+.continue-empty{color:var(--text2);font-size:.9rem;}
+
+/* MODULES GRID */
+.modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+.module-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;cursor:pointer;
+  transition:.2s;
+}
+.module-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.module-num{font-size:.75rem;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-bottom:8px;}
+.module-title{font-size:.95rem;font-weight:600;margin-bottom:8px;line-height:1.3;}
+.module-desc{font-size:.8rem;color:var(--text2);line-height:1.5;margin-bottom:14px;}
+.module-footer{display:flex;align-items:center;justify-content:space-between;}
+.module-lessons{font-size:.75rem;color:var(--text2);}
+.progress-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:8px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .4s;}
+
+/* LIVE CARD */
+.live-card{
+  background:linear-gradient(135deg,#1a1a2e,#1e1e30);
+  border:1px solid var(--gold);border-radius:var(--radius);
+  padding:20px;
+}
+.live-badge{
+  display:inline-block;background:var(--gold);color:#0f0f13;
+  font-size:.7rem;font-weight:800;letter-spacing:1px;
+  padding:3px 8px;border-radius:4px;margin-bottom:10px;
+}
+.live-title{font-size:1rem;font-weight:600;margin-bottom:10px;}
+.live-meta{display:flex;gap:16px;font-size:.82rem;color:var(--text2);margin-bottom:14px;flex-wrap:wrap;}
+
+/* MODULE DETAIL */
+#screen-module-detail .page-scroll,
+#screen-lesson .page-scroll{height:100%;overflow-y:auto;padding:24px;}
+.btn-back{
+  background:none;border:none;color:var(--text2);cursor:pointer;
+  font-size:.85rem;margin-bottom:20px;display:flex;align-items:center;gap:6px;
+  padding:0;
+}
+.btn-back:hover{color:var(--gold);}
+.module-detail-header{margin-bottom:24px;}
+.module-detail-title{font-size:1.4rem;font-weight:700;margin-bottom:6px;}
+.module-detail-desc{color:var(--text2);font-size:.9rem;line-height:1.6;}
+
+/* LESSONS LIST */
+.lessons-list{display:flex;flex-direction:column;gap:8px;}
+.lesson-item{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 18px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  transition:.15s;
+}
+.lesson-item:hover{border-color:var(--gold);}
+.lesson-item.done{border-color:rgba(240,180,41,.3);}
+.lesson-num{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--bg3);display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:700;color:var(--text2);flex-shrink:0;
+}
+.lesson-item.done .lesson-num{background:var(--gold);color:#0f0f13;}
+.lesson-info{flex:1;}
+.lesson-item-title{font-size:.9rem;font-weight:500;}
+.lesson-item-desc{font-size:.78rem;color:var(--text2);margin-top:2px;}
+
+/* AULA LAYOUT */
+#screen-lesson{position:absolute;inset:0;overflow-y:auto;background:var(--bg);}
+.lesson-layout{
+  display:grid;
+  grid-template-columns:1fr 300px;
+  min-height:100%;
+}
+@media(max-width:800px){.lesson-layout{grid-template-columns:1fr;}}
+.lesson-main{padding:20px;padding-bottom:calc(var(--bot-h)+20px);}
+@media(min-width:801px){.lesson-main{padding-bottom:20px;}}
+.player-wrap{
+  position:relative;padding-top:56.25%;
+  background:#000;border-radius:var(--radius);overflow:hidden;margin-bottom:20px;
+}
+.player-wrap iframe{position:absolute;inset:0;width:100%;height:100%;}
+.lesson-title-main{font-size:1.2rem;font-weight:700;margin-bottom:6px;}
+.lesson-desc-main{color:var(--text2);font-size:.9rem;line-height:1.6;margin-bottom:16px;}
+.lesson-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.lesson-sidebar{
+  background:var(--bg2);border-left:1px solid var(--border);
+  padding:20px;overflow-y:auto;
+}
+@media(max-width:800px){.lesson-sidebar{display:none;}}
+.sidebar-title{font-size:.85rem;font-weight:700;margin-bottom:14px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+.sidebar-item{
+  padding:10px 12px;border-radius:8px;cursor:pointer;
+  display:flex;align-items:center;gap:10px;margin-bottom:4px;
+  transition:.15s;
+}
+.sidebar-item:hover{background:var(--bg3);}
+.sidebar-item.active{background:rgba(240,180,41,.1);border-left:2px solid var(--gold);}
+.sidebar-item.done .sidebar-num{background:var(--gold);color:#0f0f13;}
+.sidebar-num{
+  width:24px;height:24px;border-radius:50%;background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;color:var(--text2);flex-shrink:0;
+}
+.sidebar-item-title{font-size:.8rem;line-height:1.3;}
+
+/* MATERIAIS */
+.materials-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.material-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+}
+.material-icon{font-size:1.8rem;margin-bottom:10px;}
+.material-badge{
+  display:inline-block;font-size:.7rem;font-weight:700;
+  background:rgba(240,180,41,.15);color:var(--gold);
+  padding:2px 8px;border-radius:4px;margin-bottom:8px;letter-spacing:.5px;
+}
+.material-title{font-size:.9rem;font-weight:600;margin-bottom:6px;}
+.material-desc{font-size:.8rem;color:var(--text2);line-height:1.5;margin-bottom:14px;}
+
+/* COMUNIDADE */
+.community-main-card{
+  background:linear-gradient(135deg,#1a1a2e,#1e1e30);
+  border:1px solid var(--gold);border-radius:var(--radius);
+  padding:32px;text-align:center;margin-bottom:28px;
+}
+.community-icon{font-size:2.5rem;margin-bottom:12px;}
+.community-card-title{font-size:1.2rem;font-weight:700;margin-bottom:10px;}
+.community-card-desc{color:var(--text2);font-size:.9rem;line-height:1.6;margin-bottom:20px;max-width:480px;margin-left:auto;margin-right:auto;}
+.community-perks{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+.perk-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+.perk-icon{font-size:1.4rem;margin-bottom:8px;}
+.perk-title{font-size:.85rem;font-weight:600;margin-bottom:4px;}
+.perk-desc{font-size:.78rem;color:var(--text2);line-height:1.4;}
+
+/* BOTTOM NAV */
+.bottom-nav{
+  height:var(--bot-h);background:var(--bg2);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-around;
+  flex-shrink:0;z-index:10;
+}
+@media(min-width:641px){.bottom-nav{display:none;}}
+.bottom-nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  color:var(--text2);text-decoration:none;font-size:.65rem;
+  padding:8px 16px;border-radius:8px;cursor:pointer;transition:.15s;
+}
+.bottom-nav-item.active{color:var(--gold);}
+.bottom-nav-icon{font-size:1.2rem;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:#222230;border:1px solid var(--border);
+  color:var(--text);border-radius:8px;padding:10px 20px;
+  font-size:.85rem;z-index:999;opacity:0;pointer-events:none;
+  transition:opacity .3s;white-space:nowrap;
+}
+.toast.show{opacity:1;}
+@media(min-width:641px){.toast{bottom:24px;}}
+
+/* LOADING */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  height:200px;color:var(--text2);gap:10px;
+}
+.spinner{
+  width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--gold);border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* AUTH FORM extras */
+.auth-divider{text-align:center;color:var(--text2);font-size:.8rem;margin:16px 0;position:relative;}
+.auth-divider::before,.auth-divider::after{
+  content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border);
+}
+.auth-divider::before{left:0;}
+.auth-divider::after{right:0;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN / CADASTRO ══ -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-text">Método <span class="gold">3Ps</span></div>
+      <p class="login-tagline">Posicionamento · Prospecção · Performance</p>
+    </div>
+
+    <!-- FORM LOGIN -->
+    <div id="form-login-wrap">
+      <div class="field">
+        <label>E-mail</label>
+        <input id="input-email" type="email" placeholder="seu@email.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input id="input-pass" type="password" placeholder="Sua senha" autocomplete="current-password"/>
+      </div>
+      <p id="login-error" class="login-error"></p>
+      <button class="btn btn-primary btn-full" id="btn-login">Entrar na plataforma</button>
+      <div class="auth-toggle">Não tem conta? <a id="link-to-signup">Cadastrar</a></div>
+    </div>
+
+    <!-- FORM CADASTRO -->
+    <div id="form-signup-wrap" style="display:none;">
+      <div class="field">
+        <label>Nome completo</label>
+        <input id="input-name" type="text" placeholder="Seu nome" autocomplete="name"/>
+      </div>
+      <div class="field">
+        <label>E-mail</label>
+        <input id="input-email-signup" type="email" placeholder="seu@email.com"/>
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input id="input-pass-signup" type="password" placeholder="Mínimo 6 caracteres"/>
+      </div>
+      <p id="signup-error" class="login-error"></p>
+      <button class="btn btn-primary btn-full" id="btn-signup">Criar conta</button>
+      <div class="auth-toggle">Já tem conta? <a id="link-to-login">Entrar</a></div>
+    </div>
+
+    <p class="login-hint">Acesso exclusivo para alunos do Método 3Ps.</p>
+  </div>
+</div>
+
+<!-- ══ APP SHELL ══ -->
+<div id="app-shell">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">Método <span class="gold">3Ps</span></div>
+    <ul class="nav-links">
+      <li><a class="nav-link" data-screen="dashboard">Dashboard</a></li>
+      <li><a class="nav-link" data-screen="modules">Módulos</a></li>
+      <li><a class="nav-link" data-screen="materials">Materiais</a></li>
+      <li><a class="nav-link" data-screen="community">Comunidade</a></li>
+    </ul>
+    <div class="navbar-right">
+      <span class="user-name" id="user-name-display"></span>
+      <button class="btn btn-ghost btn-sm" id="btn-logout">Sair</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main-content">
+
+    <!-- DASHBOARD -->
+    <div id="screen-dashboard" class="screen active">
+      <div class="page-scroll">
+        <div class="page-header">
+          <h1 class="page-title" id="dash-greeting">Olá!</h1>
+          <p class="page-subtitle">A direção certa vale mais do que a velocidade.</p>
+        </div>
+        <div class="stats-grid" id="dash-stats"></div>
+        <div class="section">
+          <h2 class="section-title">Continuar assistindo</h2>
+          <div id="dash-continue" class="continue-card">
+            <span class="continue-empty">Nenhuma aula iniciada ainda. Comece pelo Módulo 1!</span>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="section-title">Módulos do curso</h2>
+          <div id="dash-modules" class="modules-grid">
+            <div class="loading"><div class="spinner"></div> Carregando...</div>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="section-title">Próxima Live de Mentoria</h2>
+          <div class="live-card">
+            <div class="live-badge">AO VIVO</div>
+            <h3 class="live-title">Como gerar leads qualificados para imóveis no litoral</h3>
+            <div class="live-meta">
+              <span>📅 Quinta-feira</span>
+              <span>🕗 20h (horário de Brasília)</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="toast('Em breve você receberá o link da live!')">Ver detalhes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÓDULOS -->
+    <div id="screen-modules" class="screen">
+      <div class="page-scroll">
+        <div class="page-header">
+          <h1 class="page-title">Módulos do curso</h1>
+          <p class="page-subtitle">Navegue pelos módulos e acompanhe seu progresso.</p>
+        </div>
+        <div id="modules-list" class="modules-grid">
+          <div class="loading"><div class="spinner"></div> Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÓDULO DETALHE -->
+    <div id="screen-module-detail" class="screen">
+      <div class="page-scroll">
+        <button class="btn-back" id="btn-back-modules">← Voltar para módulos</button>
+        <div id="module-detail-header" class="module-detail-header"></div>
+        <div id="lessons-list" class="lessons-list"></div>
+      </div>
+    </div>
+
+    <!-- AULA -->
+    <div id="screen-lesson" class="screen">
+      <div class="lesson-layout">
+        <div class="lesson-main">
+          <button class="btn-back" id="btn-back-module">← Voltar para o módulo</button>
+          <div class="player-wrap">
+            <iframe id="lesson-iframe" src="" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen></iframe>
+          </div>
+          <h2 class="lesson-title-main" id="lesson-title"></h2>
+          <p class="lesson-desc-main" id="lesson-desc"></p>
+          <div class="lesson-actions">
+            <button class="btn btn-primary" id="btn-complete">✓ Marcar como concluída</button>
+            <button class="btn btn-ghost" id="btn-next">Próxima aula →</button>
+          </div>
+        </div>
+        <aside class="lesson-sidebar">
+          <div class="sidebar-title">Aulas do módulo</div>
+          <div id="sidebar-lessons"></div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- MATERIAIS -->
+    <div id="screen-materials" class="screen">
+      <div class="page-scroll">
+        <div class="page-header">
+          <h1 class="page-title">Materiais de Apoio</h1>
+          <p class="page-subtitle">Recursos exclusivos para acelerar seus resultados.</p>
+        </div>
+        <div class="materials-grid">
+          <div class="material-card"><div class="material-icon">📋</div><span class="material-badge">DISPONÍVEL</span><h3 class="material-title">Checklist do Corretor Digital</h3><p class="material-desc">Guia completo com todos os passos para montar sua presença digital como corretor.</p><button class="btn btn-primary btn-sm" onclick="toast('PDF disponível em breve!')">Baixar PDF</button></div>
+          <div class="material-card"><div class="material-icon">💬</div><span class="material-badge">DISPONÍVEL</span><h3 class="material-title">Roteiro de Atendimento no WhatsApp</h3><p class="material-desc">Scripts prontos para qualificar e engajar leads de imóveis pelo WhatsApp.</p><button class="btn btn-primary btn-sm" onclick="toast('PDF disponível em breve!')">Baixar PDF</button></div>
+          <div class="material-card"><div class="material-icon">🔁</div><span class="material-badge">DISPONÍVEL</span><h3 class="material-title">Modelo de Follow-up</h3><p class="material-desc">Sequência de mensagens para reativar leads frios e aumentar conversões.</p><button class="btn btn-primary btn-sm" onclick="toast('PDF disponível em breve!')">Baixar PDF</button></div>
+          <div class="material-card"><div class="material-icon">📣</div><span class="material-badge">DISPONÍVEL</span><h3 class="material-title">Checklist do Anúncio Imobiliário</h3><p class="material-desc">Tudo que um anúncio campeão precisa ter para atrair o comprador certo.</p><button class="btn btn-primary btn-sm" onclick="toast('PDF disponível em breve!')">Baixar PDF</button></div>
+          <div class="material-card"><div class="material-icon">📊</div><span class="material-badge">DISPONÍVEL</span><h3 class="material-title">Planilha de Organização de Leads</h3><p class="material-desc">Gerencie sua pipeline de clientes com essa planilha simples e eficiente.</p><button class="btn btn-ghost btn-sm" onclick="toast('Planilha disponível em breve!')">Baixar Planilha</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMUNIDADE -->
+    <div id="screen-community" class="screen">
+      <div class="page-scroll">
+        <div class="page-header">
+          <h1 class="page-title">Comunidade Corretor Digital</h1>
+          <p class="page-subtitle">Você não está sozinho nessa jornada.</p>
+        </div>
+        <div class="community-main-card">
+          <div class="community-icon">👥</div>
+          <h2 class="community-card-title">Grupo Exclusivo de Alunos</h2>
+          <p class="community-card-desc">Participe da nossa comunidade no WhatsApp com corretores de todo o Brasil. Troque experiências, tire dúvidas e acompanhe as lives em tempo real.</p>
+          <a href="#" class="btn btn-primary" onclick="toast('Link do grupo em breve!')">Acessar grupo no WhatsApp</a>
+        </div>
+        <div class="section">
+          <h2 class="section-title">Por que participar?</h2>
+          <div class="community-perks">
+            <div class="perk-card"><div class="perk-icon">❓</div><h3 class="perk-title">Tire suas dúvidas</h3><p class="perk-desc">Professores e colegas respondem em tempo real.</p></div>
+            <div class="perk-card"><div class="perk-icon">📡</div><h3 class="perk-title">Acompanhe as lives</h3><p class="perk-desc">Receba avisos e links antes de cada mentoria ao vivo.</p></div>
+            <div class="perk-card"><div class="perk-icon">🏆</div><h3 class="perk-title">Compartilhe sua evolução</h3><p class="perk-desc">Celebre conquistas e inspire outros corretores.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a class="bottom-nav-item" data-screen="dashboard"><span class="bottom-nav-icon">🏠</span><span>Dashboard</span></a>
+    <a class="bottom-nav-item" data-screen="modules"><span class="bottom-nav-icon">📚</span><span>Módulos</span></a>
+    <a class="bottom-nav-item" data-screen="materials"><span class="bottom-nav-icon">📁</span><span>Materiais</span></a>
+    <a class="bottom-nav-item" data-screen="community"><span class="bottom-nav-icon">👥</span><span>Comunidade</span></a>
+  </nav>
+
+</div><!-- /app-shell -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPA_URL = 'https://pqhmmgskgcmbzrygeynp.supabase.co';
+const SUPA_KEY = 'sb_publishable_rPK909lZax0-OjogQ1claA_kBMv6ruy';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── ESTADO ──
+const APP = {
+  user: null,
+  modules: [],
+  lessons: {},
+  progress: new Set(),
+  lastLesson: null,
+  currentModule: null,
+  currentLesson: null,
+};
+
+// ── TOAST ──
+function toast(msg, dur=3000){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), dur);
+}
+
+// ── NAVEGAÇÃO ──
+function showScreen(id){
+  document.querySelectorAll('#main-content .screen').forEach(s=>s.classList.remove('active'));
+  const s = document.getElementById('screen-'+id);
+  if(s) s.classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l=>{
+    l.classList.toggle('active', l.dataset.screen===id);
+  });
+  document.querySelectorAll('.bottom-nav-item').forEach(l=>{
+    l.classList.toggle('active', l.dataset.screen===id);
+  });
+}
+
+document.querySelectorAll('[data-screen]').forEach(el=>{
+  el.addEventListener('click', e=>{
+    e.preventDefault();
+    const sc = el.dataset.screen;
+    if(!sc) return;
+    showScreen(sc);
+    if(sc==='dashboard') renderDashboard();
+    if(sc==='modules') renderModules();
+  });
+});
+
+// ── AUTH ──
+document.getElementById('link-to-signup').onclick = ()=>{
+  document.getElementById('form-login-wrap').style.display='none';
+  document.getElementById('form-signup-wrap').style.display='block';
+};
+document.getElementById('link-to-login').onclick = ()=>{
+  document.getElementById('form-signup-wrap').style.display='none';
+  document.getElementById('form-login-wrap').style.display='block';
+};
+
+document.getElementById('btn-login').onclick = async ()=>{
+  const email = document.getElementById('input-email').value.trim();
+  const pass  = document.getElementById('input-pass').value;
+  const err   = document.getElementById('login-error');
+  err.style.display='none';
+  if(!email||!pass){err.textContent='Preencha e-mail e senha.';err.style.display='block';return;}
+  const btn = document.getElementById('btn-login');
+  btn.textContent='Entrando...';btn.disabled=true;
+  const {data,error} = await sb.auth.signInWithPassword({email,password:pass});
+  btn.textContent='Entrar na plataforma';btn.disabled=false;
+  if(error){err.textContent='E-mail ou senha incorretos.';err.style.display='block';return;}
+  onLogin(data.user);
+};
+
+document.getElementById('btn-signup').onclick = async ()=>{
+  const name  = document.getElementById('input-name').value.trim();
+  const email = document.getElementById('input-email-signup').value.trim();
+  const pass  = document.getElementById('input-pass-signup').value;
+  const err   = document.getElementById('signup-error');
+  err.style.display='none';
+  if(!name||!email||!pass){err.textContent='Preencha todos os campos.';err.style.display='block';return;}
+  if(pass.length<6){err.textContent='Senha deve ter mínimo 6 caracteres.';err.style.display='block';return;}
+  const btn = document.getElementById('btn-signup');
+  btn.textContent='Criando conta...';btn.disabled=true;
+  const {data,error} = await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
+  btn.textContent='Criar conta';btn.disabled=false;
+  if(error){err.textContent=error.message;err.style.display='block';return;}
+  toast('Conta criada! Verifique seu e-mail para confirmar.');
+};
+
+document.getElementById('btn-logout').onclick = async ()=>{
+  await sb.auth.signOut();
+  APP.user=null;
+  document.getElementById('app-shell').classList.remove('visible');
+  document.getElementById('screen-login').style.display='flex';
+};
+
+async function onLogin(user){
+  APP.user = user;
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('app-shell').classList.add('visible');
+  const name = user.user_metadata?.full_name || user.email.split('@')[0];
+  document.getElementById('user-name-display').textContent = name;
+  document.getElementById('dash-greeting').textContent = 'Olá, '+name.split(' ')[0]+'!';
+  await loadData();
+  renderDashboard();
+  showScreen('dashboard');
+}
+
+// ── DADOS ──
+async function loadData(){
+  // Módulos
+  const {data:mods} = await sb.from('course_modules').select('*').eq('is_active',true).order('order_index');
+  APP.modules = mods||[];
+  // Aulas
+  const {data:less} = await sb.from('lessons').select('*').eq('is_active',true).order('order_index');
+  APP.lessons = {};
+  (less||[]).forEach(l=>{
+    if(!APP.lessons[l.module_id]) APP.lessons[l.module_id]=[];
+    APP.lessons[l.module_id].push(l);
+  });
+  // Progresso
+  const {data:prog} = await sb.from('student_progress').select('lesson_id').eq('email',APP.user.email);
+  APP.progress = new Set((prog||[]).map(p=>p.lesson_id));
+  // Último estado
+  const {data:st} = await sb.from('student_state').select('*').eq('email',APP.user.email).maybeSingle();
+  APP.lastLesson = st ? {lesson_id: st.last_lesson_id, module_id: st.last_module_id} : null;
+}
+
+// ── DASHBOARD ──
+function renderDashboard(){
+  const total = Object.values(APP.lessons).flat().length;
+  const done  = APP.progress.size;
+  const pct   = total>0?Math.round((done/total)*100):0;
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-value">${done}</div><div class="stat-label">Aulas concluídas</div></div>
+    <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total de aulas</div></div>
+    <div class="stat-card"><div class="stat-value">${pct}%</div><div class="stat-label">Progresso geral</div></div>
+    <div class="stat-card"><div class="stat-value">${APP.modules.length}</div><div class="stat-label">Módulos</div></div>
+  `;
+  // Continuar
+  const cont = document.getElementById('dash-continue');
+  if(APP.lastLesson?.lesson_id){
+    const allLessons = Object.values(APP.lessons).flat();
+    const l = allLessons.find(x=>x.id===APP.lastLesson.lesson_id);
+    const m = APP.modules.find(x=>x.id===APP.lastLesson?.module_id);
+    if(l&&m){
+      cont.innerHTML=`
+        <div class="continue-info">
+          <div class="continue-module">${m.title}</div>
+          <div class="continue-title">${l.title}</div>
+          <button class="btn btn-primary btn-sm" onclick="openLesson('${m.id}','${l.id}')">▶ Continuar</button>
+        </div>`;
+    }
+  } else {
+    cont.innerHTML='<span class="continue-empty">Nenhuma aula iniciada ainda. Comece pelo Módulo 1!</span>';
+  }
+  // Mini módulos
+  const dm = document.getElementById('dash-modules');
+  dm.innerHTML = APP.modules.slice(0,4).map(m=>moduleCardHTML(m)).join('');
+  addModuleListeners(dm);
+}
+
+function moduleCardHTML(m){
+  const mLessons = APP.lessons[m.id]||[];
+  const done = mLessons.filter(l=>APP.progress.has(l.id)).length;
+  const pct  = mLessons.length>0?Math.round((done/mLessons.length)*100):0;
+  return `<div class="module-card" data-module="${m.id}">
+    <div class="module-num">Módulo ${m.order_index}</div>
+    <div class="module-title">${m.title}</div>
+    <div class="module-desc">${m.description||''}</div>
+    <div class="module-footer">
+      <span class="module-lessons">${mLessons.length} aulas · ${done} concluídas</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+function addModuleListeners(container){
+  container.querySelectorAll('.module-card').forEach(card=>{
+    card.onclick = ()=>openModule(card.dataset.module);
+  });
+}
+
+// ── MÓDULOS ──
+function renderModules(){
+  const list = document.getElementById('modules-list');
+  if(!APP.modules.length){list.innerHTML='<div class="loading"><div class="spinner"></div> Carregando...</div>';return;}
+  list.innerHTML = APP.modules.map(m=>moduleCardHTML(m)).join('');
+  addModuleListeners(list);
+}
+
+// ── MÓDULO DETALHE ──
+function openModule(moduleId){
+  APP.currentModule = APP.modules.find(m=>m.id===moduleId);
+  const mLessons = APP.lessons[moduleId]||[];
+  document.getElementById('module-detail-header').innerHTML=`
+    <div class="module-num">Módulo ${APP.currentModule.order_index}</div>
+    <h1 class="module-detail-title">${APP.currentModule.title}</h1>
+    <p class="module-detail-desc">${APP.currentModule.description||''}</p>`;
+  document.getElementById('lessons-list').innerHTML = mLessons.map((l,i)=>`
+    <div class="lesson-item ${APP.progress.has(l.id)?'done':''}" data-lesson="${l.id}" data-module="${moduleId}">
+      <div class="lesson-num">${APP.progress.has(l.id)?'✓':(i+1)}</div>
+      <div class="lesson-info">
+        <div class="lesson-item-title">${l.title}</div>
+        <div class="lesson-item-desc">${l.description||''}</div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('#lessons-list .lesson-item').forEach(el=>{
+    el.onclick=()=>openLesson(el.dataset.module, el.dataset.lesson);
+  });
+  showScreen('module-detail');
+}
+
+document.getElementById('btn-back-modules').onclick=()=>{
+  showScreen('modules');renderModules();
+};
+
+// ── AULA ──
+async function openLesson(moduleId, lessonId){
+  APP.currentModule = APP.modules.find(m=>m.id===moduleId);
+  const mLessons = APP.lessons[moduleId]||[];
+  APP.currentLesson = mLessons.find(l=>l.id===lessonId);
+  if(!APP.currentLesson) return;
+
+  document.getElementById('lesson-iframe').src = APP.currentLesson.video_url||'';
+  document.getElementById('lesson-title').textContent = APP.currentLesson.title;
+  document.getElementById('lesson-desc').textContent  = APP.currentLesson.description||'';
+
+  const isDone = APP.progress.has(lessonId);
+  document.getElementById('btn-complete').textContent = isDone?'✓ Concluída':'✓ Marcar como concluída';
+  document.getElementById('btn-complete').disabled = isDone;
+
+  // Sidebar
+  const sidebar = document.getElementById('sidebar-lessons');
+  sidebar.innerHTML = mLessons.map((l,i)=>`
+    <div class="sidebar-item ${l.id===lessonId?'active':''} ${APP.progress.has(l.id)?'done':''}"
+         data-lesson="${l.id}" data-module="${moduleId}">
+      <div class="sidebar-num">${APP.progress.has(l.id)?'✓':(i+1)}</div>
+      <div class="sidebar-item-title">${l.title}</div>
+    </div>`).join('');
+  sidebar.querySelectorAll('.sidebar-item').forEach(el=>{
+    el.onclick=()=>openLesson(el.dataset.module,el.dataset.lesson);
+  });
+
+  // Salvar estado
+  await sb.from('student_state').upsert({
+    user_id:APP.user.id, email:APP.user.email, last_lesson_id:lessonId, last_module_id:moduleId, updated_at:new Date().toISOString()
+  },{onConflict:'email'});
+  APP.lastLesson = {lesson_id:lessonId, module_id:moduleId};
+
+  showScreen('lesson');
+}
+
+document.getElementById('btn-back-module').onclick=()=>{
+  document.getElementById('lesson-iframe').src='';
+  if(APP.currentModule) openModule(APP.currentModule.id);
+  else showScreen('modules');
+};
+
+document.getElementById('btn-complete').onclick = async ()=>{
+  if(!APP.currentLesson||!APP.user) return;
+  const {error} = await sb.from('student_progress').upsert({
+    user_id:APP.user.id, email:APP.user.email, lesson_id:APP.currentLesson.id,
+    completed_at:new Date().toISOString()
+  },{onConflict:'email,lesson_id'});
+  if(!error){
+    APP.progress.add(APP.currentLesson.id);
+    document.getElementById('btn-complete').textContent='✓ Concluída';
+    document.getElementById('btn-complete').disabled=true;
+    toast('Aula marcada como concluída! 🎉');
+    // Atualiza sidebar
+    const sid = document.querySelector(`.sidebar-item[data-lesson="${APP.currentLesson.id}"]`);
+    if(sid){sid.classList.add('done');sid.querySelector('.sidebar-num').textContent='✓';}
+  }
+};
+
+document.getElementById('btn-next').onclick=()=>{
+  if(!APP.currentModule||!APP.currentLesson) return;
+  const mLessons = APP.lessons[APP.currentModule.id]||[];
+  const idx = mLessons.findIndex(l=>l.id===APP.currentLesson.id);
+  if(idx<mLessons.length-1) openLesson(APP.currentModule.id, mLessons[idx+1].id);
+  else toast('Você chegou na última aula deste módulo!');
+};
+
+// ── INIT ──
+(async()=>{
+  const {data:{session}} = await sb.auth.getSession();
+  if(session?.user){
+    onLogin(session.user);
+  }
+  sb.auth.onAuthStateChange((_,session)=>{
+    if(!session) {
+      document.getElementById('app-shell').classList.remove('visible');
+      document.getElementById('screen-login').style.display='flex';
+    }
+  });
+})();
+</script>
+</body>
+</html>
