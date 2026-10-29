@@ -414,13 +414,16 @@ body{
         <div class="section">
           <h2 class="section-title">Próxima Live de Mentoria</h2>
           <div class="live-card">
-            <div class="live-badge">AO VIVO</div>
-            <h3 class="live-title">Como gerar leads qualificados para imóveis no litoral</h3>
+            <div class="live-badge" id="live-badge">PRÓXIMA LIVE</div>
+            <h3 class="live-title" id="live-title">Como gerar leads qualificados para imóveis no litoral</h3>
             <div class="live-meta">
-              <span>📅 Quinta-feira</span>
-              <span>🕗 20h (horário de Brasília)</span>
+              <span id="live-date">📅 Quinta-feira</span>
+              <span id="live-time">🕗 20h (horário de Brasília)</span>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="toast('Em breve você receberá o link da live!')">Ver detalhes</button>
+            <div id="live-admin-controls" style="display:none;margin:12px 0;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" id="btn-edit-live">✏️ Editar live</button>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-live-details">Ver detalhes</button>
           </div>
         </div>
       </div>
@@ -538,6 +541,8 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 // ── ESTADO ──
 const APP = {
   user: null,
+  isAdmin: false,
+  live: null,
   modules: [],
   lessons: {},
   progress: new Set(),
@@ -627,6 +632,8 @@ document.getElementById('btn-logout').onclick = async ()=>{
 
 async function onLogin(user){
   APP.user = user;
+  APP.isAdmin = (user.email || '').toLowerCase() === 'alextomazconsultor@gmail.com';
+  document.getElementById('live-admin-controls').style.display = APP.isAdmin ? 'flex' : 'none';
   document.getElementById('screen-login').style.display='none';
   document.getElementById('app-shell').classList.add('visible');
   const name = user.user_metadata?.full_name || user.email.split('@')[0];
@@ -639,6 +646,7 @@ async function onLogin(user){
 
 // ── DADOS ──
 async function loadData(){
+  await loadLive();
   // Módulos
   const {data:mods} = await sb.from('course_modules').select('*').eq('is_active',true).order('order_index');
   APP.modules = mods||[];
@@ -656,6 +664,72 @@ async function loadData(){
   const {data:st} = await sb.from('student_state').select('*').eq('email',APP.user.email).maybeSingle();
   APP.lastLesson = st ? {lesson_id: st.last_lesson_id, module_id: st.last_module_id} : null;
 }
+
+// ── LIVE DE MENTORIA ──
+const DEFAULT_LIVE = {
+  id: 1,
+  title: 'Como gerar leads qualificados para imóveis no litoral',
+  live_date: 'Quinta-feira',
+  live_time: '20h (horário de Brasília)',
+  video_url: ''
+};
+
+function renderLive(){
+  const live = APP.live || DEFAULT_LIVE;
+  document.getElementById('live-title').textContent = live.title || DEFAULT_LIVE.title;
+  document.getElementById('live-date').textContent = '📅 ' + (live.live_date || 'Data a definir');
+  document.getElementById('live-time').textContent = '🕗 ' + (live.live_time || 'Horário a definir');
+  const link = (live.video_url || '').trim();
+  const btn = document.getElementById('btn-live-details');
+  btn.textContent = link ? 'Entrar na aula' : 'Link da aula em breve';
+  btn.disabled = !link;
+  btn.onclick = () => {
+    if (!link) { toast('O link da aula ainda não foi cadastrado.'); return; }
+    window.open(link, '_blank', 'noopener,noreferrer');
+  };
+}
+
+async function loadLive(){
+  const {data, error} = await sb.from('mentorship_live').select('*').eq('id', 1).maybeSingle();
+  if (error) console.warn('Não foi possível carregar a live. Confira se executou supabase_live.sql.', error.message);
+  APP.live = data || DEFAULT_LIVE;
+  renderLive();
+}
+
+document.getElementById('btn-edit-live').onclick = async () => {
+  if (!APP.isAdmin) return;
+  const current = APP.live || DEFAULT_LIVE;
+  const title = prompt('Título da live:', current.title || '');
+  if (title === null) return;
+  const date = prompt('Data/dia da live (ex.: Quinta-feira, 12/11/2026):', current.live_date || '');
+  if (date === null) return;
+  const time = prompt('Horário (ex.: 20h, horário de Brasília):', current.live_time || '');
+  if (time === null) return;
+  const url = prompt('Link da aula/transmissão (YouTube, Meet, Zoom etc.):', current.video_url || '');
+  if (url === null) return;
+  if (url.trim() && !/^https?:\/\//i.test(url.trim())) {
+    toast('O link precisa começar com https:// ou http://');
+    return;
+  }
+  const payload = {
+    id: 1,
+    title: title.trim() || DEFAULT_LIVE.title,
+    live_date: date.trim(),
+    live_time: time.trim(),
+    video_url: url.trim(),
+    updated_at: new Date().toISOString(),
+    updated_by: APP.user.email
+  };
+  const {data, error} = await sb.from('mentorship_live').upsert(payload).select().single();
+  if (error) {
+    console.error(error);
+    toast('Não foi possível salvar. Confira se executou supabase_live.sql no Supabase.');
+    return;
+  }
+  APP.live = data;
+  renderLive();
+  toast('Live atualizada para todos os alunos!');
+};
 
 // ── DASHBOARD ──
 function renderDashboard(){
