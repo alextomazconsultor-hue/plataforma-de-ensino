@@ -332,41 +332,26 @@ body{
       <p class="login-tagline">Posicionamento · Prospecção · Performance</p>
     </div>
 
-    <!-- FORM LOGIN -->
-    <div id="form-login-wrap">
+    <form id="student-entry">
       <div class="field">
-        <label>E-mail</label>
-        <input id="input-email" type="email" placeholder="seu@email.com" autocomplete="email"/>
+        <label for="input-email">Seu e-mail</label>
+        <input id="input-email" type="email" placeholder="seu@email.com" autocomplete="email" required/>
       </div>
-      <div class="field">
-        <label>Senha</label>
-        <input id="input-pass" type="password" placeholder="Sua senha" autocomplete="current-password"/>
-      </div>
-      <p id="login-error" class="login-error"></p>
-      <button class="btn btn-primary btn-full" id="btn-login">Entrar na plataforma</button>
-      <div class="auth-toggle">Não tem conta? <a id="link-to-signup">Cadastrar</a></div>
-    </div>
+      <p id="login-error" class="login-error" role="alert"></p>
+      <button class="btn btn-primary btn-full" id="btn-login" type="submit">Entrar na plataforma</button>
+      <p class="login-hint">Entre sem senha. Use sempre o mesmo e-mail para continuar seu progresso.</p>
+    </form>
+    <details style="margin-top:24px">
+      <summary style="cursor:pointer;color:var(--text2);font-size:.8rem">Acesso administrativo</summary>
+      <form id="admin-entry" style="margin-top:16px">
+        <div class="field"><label for="admin-email">E-mail do administrador</label><input id="admin-email" type="email" autocomplete="username" required/></div>
+        <div class="field"><label for="admin-pass">Senha administrativa</label><input id="admin-pass" type="password" autocomplete="current-password" required/></div>
+        <p id="admin-error" class="login-error" role="alert"></p>
+        <button class="btn btn-primary btn-full" id="btn-admin-login" type="submit">Entrar como administrador</button>
+      </form>
+    </details>
 
-    <!-- FORM CADASTRO -->
-    <div id="form-signup-wrap" style="display:none;">
-      <div class="field">
-        <label>Nome completo</label>
-        <input id="input-name" type="text" placeholder="Seu nome" autocomplete="name"/>
-      </div>
-      <div class="field">
-        <label>E-mail</label>
-        <input id="input-email-signup" type="email" placeholder="seu@email.com"/>
-      </div>
-      <div class="field">
-        <label>Senha</label>
-        <input id="input-pass-signup" type="password" placeholder="Mínimo 6 caracteres"/>
-      </div>
-      <p id="signup-error" class="login-error"></p>
-      <button class="btn btn-primary btn-full" id="btn-signup">Criar conta</button>
-      <div class="auth-toggle">Já tem conta? <a id="link-to-login">Entrar</a></div>
-    </div>
-
-    <p class="login-hint">Acesso exclusivo para alunos do Método 3Ps.</p>
+    <p class="login-hint">Área de aulas do Método 3Ps.</p>
   </div>
 </div>
 
@@ -537,6 +522,15 @@ body{
 const SUPA_URL = 'https://pqhmmgskgcmbzrygeynp.supabase.co';
 const SUPA_KEY = 'sb_publishable_rPK909lZax0-OjogQ1claA_kBMv6ruy';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+// Student access deliberately uses email identification without an Auth session.
+// The admin client retains real authentication for all privileged operations.
+const studentSb = supabase.createClient(SUPA_URL, SUPA_KEY, {
+  auth: {persistSession:false, autoRefreshToken:false, detectSessionInUrl:false, storageKey:'3ps-public-student'}
+});
+const STUDENT_KEY = '3ps-student-email';
+const normalizeEmail = value => (value || '').trim().toLowerCase();
+const validEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const dataClient = () => APP.isAdmin ? sb : studentSb;
 
 // ── ESTADO ──
 const APP = {
@@ -583,56 +577,58 @@ document.querySelectorAll('[data-screen]').forEach(el=>{
   });
 });
 
-// ── AUTH ──
-document.getElementById('link-to-signup').onclick = ()=>{
-  document.getElementById('form-login-wrap').style.display='none';
-  document.getElementById('form-signup-wrap').style.display='block';
-};
-document.getElementById('link-to-login').onclick = ()=>{
-  document.getElementById('form-signup-wrap').style.display='none';
-  document.getElementById('form-login-wrap').style.display='block';
-};
-
-document.getElementById('btn-login').onclick = async ()=>{
-  const email = document.getElementById('input-email').value.trim();
-  const pass  = document.getElementById('input-pass').value;
-  const err   = document.getElementById('login-error');
-  err.style.display='none';
-  if(!email||!pass){err.textContent='Preencha e-mail e senha.';err.style.display='block';return;}
+// ── STUDENT ENTRY / ADMIN AUTH ──
+document.getElementById('student-entry').onsubmit = async event => {
+  event.preventDefault();
+  const email = normalizeEmail(document.getElementById('input-email').value);
+  const err = document.getElementById('login-error');
   const btn = document.getElementById('btn-login');
-  btn.textContent='Entrando...';btn.disabled=true;
-  const {data,error} = await sb.auth.signInWithPassword({email,password:pass});
-  btn.textContent='Entrar na plataforma';btn.disabled=false;
-  if(error){err.textContent='E-mail ou senha incorretos.';err.style.display='block';return;}
-  onLogin(data.user);
-};
-
-document.getElementById('btn-signup').onclick = async ()=>{
-  const name  = document.getElementById('input-name').value.trim();
-  const email = document.getElementById('input-email-signup').value.trim();
-  const pass  = document.getElementById('input-pass-signup').value;
-  const err   = document.getElementById('signup-error');
   err.style.display='none';
-  if(!name||!email||!pass){err.textContent='Preencha todos os campos.';err.style.display='block';return;}
-  if(pass.length<6){err.textContent='Senha deve ter mínimo 6 caracteres.';err.style.display='block';return;}
-  const btn = document.getElementById('btn-signup');
-  btn.textContent='Criando conta...';btn.disabled=true;
-  const {data,error} = await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
-  btn.textContent='Criar conta';btn.disabled=false;
-  if(error){err.textContent=error.message;err.style.display='block';return;}
-  toast('Conta criada! Verifique seu e-mail para confirmar.');
+  if(!validEmail(email)){err.textContent='Digite um e-mail válido.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Entrando...';
+  try {
+    await onLogin({email},false);
+    localStorage.setItem(STUDENT_KEY,email);
+  } catch(error) {
+    APP.user=null;APP.isAdmin=false;
+    document.getElementById('app-shell').classList.remove('visible');
+    document.getElementById('screen-login').style.display='flex';
+    err.textContent='Não foi possível carregar as aulas. Tente novamente.';err.style.display='block';
+    console.error(error);
+  } finally {btn.disabled=false;btn.textContent='Entrar na plataforma';}
 };
-
+document.getElementById('admin-entry').onsubmit = async event => {
+  event.preventDefault();
+  const email=normalizeEmail(document.getElementById('admin-email').value);
+  const password=document.getElementById('admin-pass').value;
+  const err=document.getElementById('admin-error'),btn=document.getElementById('btn-admin-login');
+  err.style.display='none';btn.disabled=true;
+  try {
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(normalizeEmail(data.user.email)!=='alextomazconsultor@gmail.com'){
+      await sb.auth.signOut();throw Error('Este acesso é exclusivo do administrador. Alunos entram só com e-mail.');
+    }
+    localStorage.removeItem(STUDENT_KEY);
+    await onLogin(data.user,true);
+    document.getElementById('admin-pass').value='';
+  } catch(error){err.textContent=error.message==='Invalid login credentials'?'E-mail ou senha administrativa incorretos.':error.message;err.style.display='block';}
+  finally {btn.disabled=false;}
+};
 document.getElementById('btn-logout').onclick = async ()=>{
-  await sb.auth.signOut();
-  APP.user=null;
+  const wasAdmin=APP.isAdmin;
+  localStorage.removeItem(STUDENT_KEY);
+  document.getElementById('lesson-iframe').src='';
+  APP.user=null;APP.isAdmin=false;APP.progress=new Set();APP.lastLesson=null;APP.currentLesson=null;APP.currentModule=null;
+  document.getElementById('live-admin-controls').style.display='none';
   document.getElementById('app-shell').classList.remove('visible');
   document.getElementById('screen-login').style.display='flex';
+  if(wasAdmin)await sb.auth.signOut();
 };
 
-async function onLogin(user){
+async function onLogin(user,verifiedAdmin=false){
   APP.user = user;
-  APP.isAdmin = (user.email || '').toLowerCase() === 'alextomazconsultor@gmail.com';
+  APP.isAdmin = verifiedAdmin && normalizeEmail(user.email) === 'alextomazconsultor@gmail.com';
   document.getElementById('live-admin-controls').style.display = APP.isAdmin ? 'flex' : 'none';
   document.getElementById('screen-login').style.display='none';
   document.getElementById('app-shell').classList.add('visible');
@@ -648,20 +644,22 @@ async function onLogin(user){
 async function loadData(){
   await loadLive();
   // Módulos
-  const {data:mods} = await sb.from('course_modules').select('*').eq('is_active',true).order('order_index');
+  const {data:mods,error:modsError} = await dataClient().from('course_modules').select('*').eq('is_active',true).order('order_index');
+  if(modsError)throw modsError;
   APP.modules = mods||[];
   // Aulas
-  const {data:less} = await sb.from('lessons').select('*').eq('is_active',true).order('order_index');
+  const {data:less,error:lessError} = await dataClient().from('lessons').select('*').eq('is_active',true).order('order_index');
+  if(lessError)throw lessError;
   APP.lessons = {};
   (less||[]).forEach(l=>{
     if(!APP.lessons[l.module_id]) APP.lessons[l.module_id]=[];
     APP.lessons[l.module_id].push(l);
   });
   // Progresso
-  const {data:prog} = await sb.from('student_progress').select('lesson_id').eq('email',APP.user.email);
+  const {data:prog} = await dataClient().from('student_progress').select('lesson_id').eq('email',APP.user.email).eq('completed',true);
   APP.progress = new Set((prog||[]).map(p=>p.lesson_id));
   // Último estado
-  const {data:st} = await sb.from('student_state').select('*').eq('email',APP.user.email).maybeSingle();
+  const {data:st} = await dataClient().from('student_state').select('*').eq('email',APP.user.email).maybeSingle();
   APP.lastLesson = st ? {lesson_id: st.last_lesson_id, module_id: st.last_module_id} : null;
 }
 
@@ -690,7 +688,7 @@ function renderLive(){
 }
 
 async function loadLive(){
-  const {data, error} = await sb.from('mentorship_live').select('*').eq('id', 1).maybeSingle();
+  const {data, error} = await dataClient().from('mentorship_live').select('*').eq('id', 1).maybeSingle();
   if (error) console.warn('Não foi possível carregar a live. Confira se executou supabase_live.sql.', error.message);
   APP.live = data || DEFAULT_LIVE;
   renderLive();
@@ -848,8 +846,8 @@ async function openLesson(moduleId, lessonId){
   });
 
   // Salvar estado
-  await sb.from('student_state').upsert({
-    user_id:APP.user.id, email:APP.user.email, last_lesson_id:lessonId, last_module_id:moduleId, updated_at:new Date().toISOString()
+  await dataClient().from('student_state').upsert({
+    ...(APP.user.id ? {user_id:APP.user.id} : {}), email:APP.user.email, last_lesson_id:lessonId, last_module_id:moduleId, updated_at:new Date().toISOString()
   },{onConflict:'email'});
   APP.lastLesson = {lesson_id:lessonId, module_id:moduleId};
 
@@ -864,9 +862,9 @@ document.getElementById('btn-back-module').onclick=()=>{
 
 document.getElementById('btn-complete').onclick = async ()=>{
   if(!APP.currentLesson||!APP.user) return;
-  const {error} = await sb.from('student_progress').upsert({
-    user_id:APP.user.id, email:APP.user.email, lesson_id:APP.currentLesson.id,
-    completed_at:new Date().toISOString()
+  const {error} = await dataClient().from('student_progress').upsert({
+    ...(APP.user.id ? {user_id:APP.user.id} : {}), email:APP.user.email, lesson_id:APP.currentLesson.id,
+    completed:true, completed_at:new Date().toISOString()
   },{onConflict:'email,lesson_id'});
   if(!error){
     APP.progress.add(APP.currentLesson.id);
@@ -889,12 +887,25 @@ document.getElementById('btn-next').onclick=()=>{
 
 // ── INIT ──
 (async()=>{
-  const {data:{session}} = await sb.auth.getSession();
-  if(session?.user){
-    onLogin(session.user);
+  try {
+    const email=normalizeEmail(localStorage.getItem(STUDENT_KEY));
+    if(validEmail(email)){await onLogin({email},false);return;}
+    const {data:{session}}=await sb.auth.getSession();
+    if(session?.user){
+      const {data:{user},error}=await sb.auth.getUser();
+      if(!error&&user)await onLogin(user,normalizeEmail(user.email)==='alextomazconsultor@gmail.com');
+    }
+  } catch(error){
+    console.error(error);
+    APP.user=null;APP.isAdmin=false;
+    document.getElementById('app-shell').classList.remove('visible');
+    document.getElementById('screen-login').style.display='flex';
+    toast('Não foi possível restaurar o acesso. Entre novamente com seu e-mail.');
   }
   sb.auth.onAuthStateChange((_,session)=>{
-    if(!session) {
+    if(APP.isAdmin&&!session){
+      APP.user=null;APP.isAdmin=false;
+      document.getElementById('live-admin-controls').style.display='none';
       document.getElementById('app-shell').classList.remove('visible');
       document.getElementById('screen-login').style.display='flex';
     }
